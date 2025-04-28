@@ -5,13 +5,13 @@ import "github.com/jcompagni10/skip-router-data/x/skip"
 var (
 	Amounts = []int{1, 50, 100, 1000, 5000}
 	Pairs   = [][]string{
-		// {"USDC", "NTRN"},
-		// {"USDC", "TIA"},
+		{"USDC", "NTRN"},
+		{"USDC", "TIA"},
 		{"USDC", "DYDX"},
-		// {"USDC", "OSMO"},
-		// {"USDC", "ATOM"},
-		// {"USDC", "WETH.axl"},
-		// {"USDC", "WBTC.axl"},
+		{"USDC", "OSMO"},
+		{"USDC", "ATOM"},
+		{"USDC", "WETH.axl"},
+		{"USDC", "WBTC.axl"},
 	}
 )
 
