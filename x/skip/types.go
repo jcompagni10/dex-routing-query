@@ -59,18 +59,19 @@ type AxelarTransfer struct {
 
 // Asset represents a token asset
 type Asset struct {
-	Denom         string `json:"denom"`
-	ChainID       string `json:"chain_id"`
-	OriginDenom   string `json:"origin_denom"`
-	OriginChainID string `json:"origin_chain_id"`
-	Trace         string `json:"trace"`
-	IsCW20        bool   `json:"is_cw20"`
-	IsEVM         bool   `json:"is_evm"`
-	Symbol        string `json:"symbol"`
-	Name          string `json:"name"`
-	LogoURI       string `json:"logo_uri"`
-	Decimals      int    `json:"decimals"`
-	TokenContract string `json:"token_contract"`
+	Denom             string `json:"denom"`
+	ChainID           string `json:"chain_id"`
+	OriginDenom       string `json:"origin_denom"`
+	OriginChainID     string `json:"origin_chain_id"`
+	Trace             string `json:"trace"`
+	IsCW20            bool   `json:"is_cw20"`
+	IsEVM             bool   `json:"is_evm"`
+	Symbol            string `json:"symbol"`
+	Name              string `json:"name"`
+	LogoURI           string `json:"logo_uri"`
+	Decimals          int    `json:"decimals"`
+	TokenContract     string `json:"token_contract"`
+	RecommendedSymbol string `json:"recommended_symbol"`
 }
 
 // Swap represents a swap operation
@@ -104,13 +105,16 @@ type SwapOperation struct {
 	DenomOut string `json:"denom_out"`
 }
 
-type ChainDenom struct {
-	IBCDenom string `json:"ibc_denom"`
-	Symbol   string `json:"symbol"`
-	Decimals int    `json:"decimals"`
+type ChainToAssetsMap struct {
+	ChainToAssets map[string]ChainAssets `json:"chain_to_assets"`
 }
 
-type ChainData struct {
-	ChainID string       `json:"chain_id"`
-	Denoms  []ChainDenom `json:"denoms"`
+// ChainAssets represents the assets for a specific chain
+type ChainAssets struct {
+	Assets []Asset `json:"assets"`
+}
+
+// ChainToAssetsResponse represents the complete response structure
+type ChainToAssetsResponse struct {
+	ChainToAssetsMap map[string]ChainAssets `json:"chain_to_assets_map"`
 }

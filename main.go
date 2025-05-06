@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jcompagni10/skip-router-data/x/reporter"
+	"github.com/jcompagni10/skip-router-data/x/skip"
 	_ "github.com/mattn/go-sqlite3"
 	log "github.com/sirupsen/logrus"
 )
@@ -47,17 +48,12 @@ func initDB(dbPath string) (*sql.DB, error) {
 	return db, nil
 }
 
-func main() {
-	var sleepTime = 30 * time.Second
-	log.SetFormatter(&log.JSONFormatter{})
-	log.Info("Starting application...")
-
+func SetupDB() (*sql.DB, error) {
 	dbPath := os.Getenv("DB_PATH")
 	if dbPath == "" {
 		dbPath = "data/database.db"
 	}
 
-	// Ensure data directory exists
 	if err := os.MkdirAll("data", 0755); err != nil {
 		log.Fatalf("Error creating data directory: %v", err)
 	}
@@ -66,7 +62,21 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error initializing database: %v", err)
 	}
-	defer db.Close()
+
+	return db, nil
+}
+
+func SetupData() {
+	reporter.ParsePairsFromEnv()
+	reporter.ParseChainIdsFromEnv()
+
+	chainAssets, err := skip.GetChainAssets(reporter.ChainIds)
+	if err != nil {
+		log.Fatalf("Error getting chain assets: %v", err)
+	}
+	reporter.ChainData = chainAssets
+
+	reporter.ParseExclusionsFromEnv()
 
 	symbolsToSeed := []string{}
 	for _, pair := range reporter.Pairs {
@@ -74,6 +84,21 @@ func main() {
 	}
 
 	reporter.SeedPriceCache(symbolsToSeed)
+}
+
+func main() {
+	var sleepTime = 30 * time.Second
+	log.SetFormatter(&log.JSONFormatter{})
+	log.Info("Starting application...")
+
+	db, err := SetupDB()
+	if err != nil {
+		log.Fatalf("Error setting up database: %v", err)
+	}
+
+	defer db.Close()
+
+	SetupData()
 
 	for {
 		log.Info("Running ReportSwapRoutes...")

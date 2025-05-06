@@ -10,4 +10,7 @@ services:
     environment:
       - DB_PATH=/app/data/database.db
       - SKIP_API_KEY=${SKIP_API_KEY}
+      - PAIRS=USDC,NTRN;USDC,TIA;USDC,DYDX;USDC,OSMO;USDC,ATOM;USDC,WETH.axl;USDC,WBTC.axl;USDC,dATOM;USDC,dTIA;USDC,dNTRN;USDC,wstETH
+      - CHAIN_IDS=neutron-1;osmosis-1;cosmoshub-4
+      - PAIR_EXCLUSIONS=cosmoshub-4:WETH.axl,WBTC.axl;osmosis-1:DYDX
     restart: unless-stopped 

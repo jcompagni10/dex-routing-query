@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 )
 
@@ -38,10 +39,13 @@ func PostRequest(path string, reqBody io.Reader) ([]byte, error) {
 	return body, err
 }
 
-func GetRequest(path string) ([]byte, error) {
-	url := baseURL + path
+func GetRequest(path string, queryParams url.Values) ([]byte, error) {
+	baseUrl := baseURL + path
+	if len(queryParams) > 0 {
+		baseUrl += "?" + queryParams.Encode()
+	}
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("GET", baseUrl, nil)
 	if err != nil {
 		return nil, err
 	}

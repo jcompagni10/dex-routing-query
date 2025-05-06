@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"slices"
 	"strconv"
 	"time"
 
@@ -28,15 +29,15 @@ type RouteResult struct {
 	SourceChain  string
 }
 
-func GetSwapRoute(amount *big.Int, chain string, denomIn skip.ChainDenom, denomOut skip.ChainDenom, venue ...string) (SwapResult, error) {
+func GetSwapRoute(amount *big.Int, chain string, denomIn skip.Asset, denomOut skip.Asset, venue ...string) (SwapResult, error) {
 
 	allowUnsafe := true
 	req := &skip.FungibleRouteRequest{
 		AmountIn:           amount.String(),
 		SourceAssetChainID: chain,
-		SourceAssetDenom:   denomIn.IBCDenom,
+		SourceAssetDenom:   denomIn.Denom,
 		DestAssetChainID:   chain,
-		DestAssetDenom:     denomOut.IBCDenom,
+		DestAssetDenom:     denomOut.Denom,
 		AllowUnsafe:        &allowUnsafe,
 	}
 	if len(venue) > 0 {
@@ -64,7 +65,7 @@ func GetSwapRoute(amount *big.Int, chain string, denomIn skip.ChainDenom, denomO
 	select {
 	case result := <-resultChan:
 		if result.err != nil {
-			return SwapResult{}, fmt.Errorf("error getting route: %v to %v (%v) venue=%v %#v: %v", denomIn, denomOut, chain, venue, req, result.err)
+			return SwapResult{}, fmt.Errorf("error getting route: %v to %v (%v) venue=%v %#v: %v", denomIn.Denom, denomOut.Denom, chain, venue, req, result.err)
 		}
 		resp := result.resp
 
@@ -104,17 +105,17 @@ func ReportSwapRoutes(db *sql.DB) {
 		}
 
 		for _, amount := range Amounts {
-			for _, chain := range ChainData {
+			for _, chainID := range ChainIds {
 				// check both directions
 				for _, reverseDirection := range []bool{false, true} {
 
-					denoms, err := GetDenomsForChain(chain.ChainID, pair)
+					denoms, err := GetDenomsForChain(chainID, pair)
 					if err != nil {
 						log.Error(err)
 						continue
 					}
 
-					var denomIn, denomOut skip.ChainDenom
+					var denomIn, denomOut skip.Asset
 					var amountIn *big.Int
 					if reverseDirection {
 						denomIn, denomOut = denoms[1], denoms[0]
@@ -125,8 +126,8 @@ func ReportSwapRoutes(db *sql.DB) {
 						amountIn = CalcAmountIn(amount, price0, denomIn)
 
 					}
-					log.Infof("%v Processing pair: %v to %v, $amount: %v; amountIn: %v price0: %v price1: %v", chain.ChainID, denomIn, denomOut, amount, amountIn, price0, price1)
-					swapResult, err := GetSwapRoute(amountIn, chain.ChainID, denomIn, denomOut)
+					log.Infof("%v Processing pair: %v to %v, $amount: %v; amountIn: %v price0: %v price1: %v", chainID, denomIn.RecommendedSymbol, denomOut.RecommendedSymbol, amount, amountIn, price0, price1)
+					swapResult, err := GetSwapRoute(amountIn, chainID, denomIn, denomOut)
 					if err != nil {
 						log.Error(err)
 						continue
@@ -139,11 +140,11 @@ func ReportSwapRoutes(db *sql.DB) {
 						TokenOut:     denomOut.Symbol,
 						AmountIn:     amount,
 						Time:         time.Now(),
-						SourceChain:  chain.ChainID,
+						SourceChain:  chainID,
 					}
 
 					if routeResult.Winner != "neutron-duality" {
-						neutronSwapResult, err := GetSwapRoute(amountIn, chain.ChainID, denomIn, denomOut, "neutron-duality")
+						neutronSwapResult, err := GetSwapRoute(amountIn, chainID, denomIn, denomOut, "neutron-duality")
 						if err != nil {
 							log.Error(err)
 						} else {
@@ -169,22 +170,28 @@ func insertRouteResult(db *sql.DB, routeResult RouteResult) error {
 	return err
 }
 
-func GetDenomForChain(chain string, symbol string) (skip.ChainDenom, error) {
-	for _, chainData := range ChainData {
-		if chainData.ChainID != chain {
+func GetDenomForChain(chain string, symbol string) (skip.Asset, error) {
+
+	if _, ok := Exclusions[chain]; ok {
+		if slices.Contains(Exclusions[chain], symbol) {
+			return skip.Asset{}, fmt.Errorf("skipping denom %v for chain: %v", symbol, chain)
+		}
+	}
+	for chainID, chainData := range ChainData {
+		if chainID != chain {
 			continue
 		}
-		for _, denomData := range chainData.Denoms {
-			if denomData.Symbol == symbol {
+		for _, denomData := range chainData.Assets {
+			if denomData.RecommendedSymbol == symbol {
 				return denomData, nil
 			}
 		}
 	}
-	return skip.ChainDenom{}, fmt.Errorf("denom: %v not found for chain: %v", symbol, chain)
+	return skip.Asset{}, fmt.Errorf("denom: %v not found for chain: %v", symbol, chain)
 }
 
-func GetDenomsForChain(chain string, symbols []string) ([]skip.ChainDenom, error) {
-	denoms := make([]skip.ChainDenom, len(ChainData))
+func GetDenomsForChain(chain string, symbols []string) ([]skip.Asset, error) {
+	denoms := make([]skip.Asset, len(ChainData))
 	for i, symbol := range symbols {
 		denom, err := GetDenomForChain(chain, symbol)
 		if err != nil {

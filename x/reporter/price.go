@@ -93,7 +93,7 @@ func SeedPriceCache(symbols []string) {
 	}
 }
 
-func CalcAmountIn(usdAmountIn int, price float64, denom skip.ChainDenom) *big.Int {
+func CalcAmountIn(usdAmountIn int, price float64, denom skip.Asset) *big.Int {
 
 	amountUSDBig := big.NewFloat(float64(usdAmountIn))
 	amountBigToken := new(big.Float).Quo(
