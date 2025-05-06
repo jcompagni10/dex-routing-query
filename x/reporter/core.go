@@ -107,7 +107,6 @@ func ReportSwapRoutes(db *sql.DB) {
 			for _, chain := range ChainData {
 				// check both directions
 				for _, reverseDirection := range []bool{false, true} {
-					log.Infof("%v Processing pair: %v to %v, amount: %v", chain.ChainID, pair[0], pair[1], amount)
 
 					denoms, err := GetDenomsForChain(chain.ChainID, pair)
 					if err != nil {
@@ -119,7 +118,6 @@ func ReportSwapRoutes(db *sql.DB) {
 					var amountIn *big.Int
 					if reverseDirection {
 						denomIn, denomOut = denoms[1], denoms[0]
-
 						amountIn = CalcAmountIn(amount, price1, denomIn)
 
 					} else {
@@ -127,15 +125,16 @@ func ReportSwapRoutes(db *sql.DB) {
 						amountIn = CalcAmountIn(amount, price0, denomIn)
 
 					}
-					swapResult0To1, err := GetSwapRoute(amountIn, chain.ChainID, denomIn, denomOut)
+					log.Infof("%v Processing pair: %v to %v, $amount: %v; amountIn: %v price0: %v price1: %v", chain.ChainID, denomIn, denomOut, amount, amountIn, price0, price1)
+					swapResult, err := GetSwapRoute(amountIn, chain.ChainID, denomIn, denomOut)
 					if err != nil {
 						log.Error(err)
 						continue
 					}
 
 					routeResult := RouteResult{
-						Winner:       swapResult0To1.Venue,
-						WinningPrice: swapResult0To1.Price,
+						Winner:       swapResult.Venue,
+						WinningPrice: swapResult.Price,
 						TokenIn:      denomIn.Symbol,
 						TokenOut:     denomOut.Symbol,
 						AmountIn:     amount,
@@ -151,7 +150,7 @@ func ReportSwapRoutes(db *sql.DB) {
 							routeResult.NeutronPrice = neutronSwapResult.Price
 						}
 					} else {
-						routeResult.NeutronPrice = swapResult0To1.Price
+						routeResult.NeutronPrice = swapResult.Price
 					}
 
 					err = insertRouteResult(db, routeResult)

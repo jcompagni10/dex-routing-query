@@ -18,7 +18,7 @@ func GetTokenPrice(db *sql.DB, denom string) (float64, error) {
 	query := `
 		SELECT winning_price
 		FROM swap_routes
-		WHERE token_in = "USDC" AND token_out = $1
+		WHERE token_in = $1 AND token_out = "USDC"
 		ORDER BY time DESC
 		LIMIT 1
 	`
