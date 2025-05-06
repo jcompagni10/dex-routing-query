@@ -44,7 +44,7 @@ func GetTokenPriceCached(db *sql.DB, denom string) (float64, error) {
 	}
 
 	now := time.Now()
-	cacheExpiry := 5 * time.Minute
+	cacheExpiry := 10 * time.Minute
 
 	// Check cache first
 	priceCacheMutex.RLock()
